@@ -22,7 +22,7 @@ class MqttClient:
     # Aufgerufen wenn eine Nachricht empfangen wurde
     def on_message(self, client, userdata, msg):
         self.times.append(time.time() - float(msg.payload))
-        print len(self.times)
+        #print len(self.times)
 
     # Diese Methode verbindet den Protokollwrapper mit dem MQTT-Broker
     def connect(self, host, port=1883, keepalive=60):
@@ -43,9 +43,9 @@ def mqtt_publish_worker(client):
     while(client.online == False):
         time.sleep(1)
 
-    for i in range(0, 10000):
+    for i in range(0, 100):
         client.publish("ll/current_time", "{:.9f}".format(time.time()))
-        time.sleep(0.01)
+        time.sleep(0.1)
 
     number = 0
     sum = 0
@@ -57,7 +57,7 @@ def mqtt_publish_worker(client):
 
 if __name__ == "__main__":
     client = MqttClient()
-    subscribe_loop = Thread(target=mqtt_subscription_worker, args=("192.168.178.47",client))
+    subscribe_loop = Thread(target=mqtt_subscription_worker, args=("192.168.178.36",client))
     subscribe_loop.start()
     publish_loop = Thread(target=mqtt_publish_worker, args=(client, ))
     publish_loop.start()
