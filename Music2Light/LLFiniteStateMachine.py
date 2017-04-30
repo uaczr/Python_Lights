@@ -1,5 +1,6 @@
 from LLCommunicator import LLSignalToReactionEntry, LLSignalToReactionEngine
 from threading import Thread
+from time import sleep
 
 class LLState(object):
     signalToReactionMapping = []
@@ -84,4 +85,6 @@ class LLFiniteStateMachine(object):
             self.current_event = self.eventMatrix.getTriggeredEvent()
             self.current_state = self.transitionMatrix.getFutureState(self.current_state, self.current_event)
             self.reactionEngine.setSignal2ReactionList(self.current_state.signalToReactionMapping)
+            sleep(0.01)
+
 

@@ -26,7 +26,7 @@ class LLSignalToReactionEngine(object):
 
     def signal2reaction(self, signal):
         for signalToReaction in self.signalreactionlist:
-            if(signalToReaction.signal.name == signal.name):
+            if(signalToReaction.signal == signal.name):
                 signalToReaction.reaction.react(signal)
                 break
 
@@ -75,8 +75,9 @@ class LLSubscription(LLSignal):
         super(LLSubscription, self).__init__(name, signal2Reaction)
         self.topic = LLTopic(path, 0)
 
-    def signal(self, value=0):
-        self.topic.value = value
+    def signal(self, value=0, path=""):
+        self.value = value
+        self.path = path
         self.signal2Reaction.signal2reaction(self)
 
 
@@ -110,8 +111,8 @@ class LLCommunicator(object):
     def on_message(self, client, user_data, msg):
         print('Received Message on Topic {} with Value {}'.format(msg.topic, msg.payload))
         for subscription in self.subscriptions:
-            if(subscription.topic.path == msg.topic):
-                subscription.signal(value=msg.payload)
+            if(mqtt.topic_matches_sub(subscription.topic.path, msg.topic)):
+                subscription.signal(value=msg.payload, path=msg.topic)
 
     def publish(self, topic):
         print('Published Message on Topic {} with Value {}'.format(topic.path, topic.value))
