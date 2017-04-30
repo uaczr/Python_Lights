@@ -15,7 +15,7 @@ class LLSignalToReactionEntry:
 '''
 Creates Link between signal and reaction
 '''
-class LLSignalToReaction:
+class LLSignalToReactionEngine(object):
     signalreactionlist = []
 
     def __init__(self):
@@ -46,8 +46,9 @@ class LLSignal(object):
 Base class for all reactions
 '''
 class LLReaction(object):
-    def __init__(self, name):
+    def __init__(self, name, eventmatrix):
         self.name = name
+        self.eventmatrix = eventmatrix
 
     def react(self, signal):
         self.signal = signal
@@ -80,7 +81,7 @@ class LLSubscription(LLSignal):
 
 
 
-class LLCommunicator:
+class LLCommunicator(object):
     subscriptions = []
     loop = 0
     def __init__(self, brocker_address, port):
