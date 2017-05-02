@@ -1,4 +1,7 @@
+from pixeltypes import CRGB
+
 class Pattern:
+
     def __init__(self, _variable1):
         self.fastLED = FastLED()
 
