@@ -63,8 +63,11 @@ class LLReactionDeviceStatus(LLReaction):
 
     def react(self, signal):
         print("Reacting to DeviceStatus")
-        device, id = self.findTypeAndId(signal.path)
-        print('Device of type {} with id {} changed to status {}'.format(device, id, signal.value))
+        type, id = self.findTypeAndId(signal.path)
+        print('Device of type {} with id {} changed to status {}'.format(type, id, signal.value))
+        device = self.logic.find_device(type,id)
+        device.set_status(signal.value)
+
 
     def findTypeAndId(self, path):
         type_begin = path.find("/")+1
@@ -72,6 +75,40 @@ class LLReactionDeviceStatus(LLReaction):
         id_begin = type_end + 1
         id_end = path.find("/", id_begin)
         return path[type_begin:type_end], path[id_begin:id_end]
+
+class LLReactionButtonBox(LLReaction):
+    def __init__(self, name, eventmatrix, logic):
+        super(LLReactionButtonBox, self).__init__(name, eventmatrix)
+        self.logic = logic
+
+    def react(self, signal):
+        type, id = self.findTypeAndId(signal.path)
+        device = self.logic.find_device(type, id)
+        if (device == -1):
+            print('Error, Device not found')
+        else:
+            if(signal.value == "1"):
+                print("Button on {} with id {} is pushed".format(type, id))
+                device.set_button()
+            else:
+                print("Button on {} with id {} is not pushed".format(type, id))
+                device.unset_button()
+
+    def findTypeAndId(self, path):
+        type_begin = path.find("/")+1
+        type_end = path.find("/", type_begin)
+        id_begin = type_end + 1
+        id_end = path.find("/", id_begin)
+        return path[type_begin:type_end], path[id_begin:id_end]
+
+
+class LLReactionGameChange(LLReaction):
+    def __init__(self, name, eventmatrix, logic):
+        super(LLReactionButtonBox, self).__init__(name, eventmatrix)
+
+
+
+
 
 
 
@@ -103,7 +140,11 @@ if __name__ == "__main__":
     subscription_hello_mac = LLSubscription("hello_mac", "hello/mac", reactionEngine)
 
     subscription_device_stati = LLSubscription("device_status","devices/+/+/status", reactionEngine)
-    subscription_buttonbox_buttons = LLSubscription("buttons","devices/StandardButtonBox/+/button", reactionEngine)
+    subscription_buttonbox_buttons = LLSubscription("button","devices/StandardButtonBox/+/button", reactionEngine)
+
+    signal_random_game = LLSignal("random_game", reactionEngine)
+    signal_light_game = LLSignal("light_game", reactionEngine)
+    signal_party_game = LLSignal("party_game", reactionEngine)
 
 
     '''
@@ -115,6 +156,7 @@ if __name__ == "__main__":
     reaction_hello_type = LLReactionHelloType("HelloType", FsmEventMatrix, logic)
     reaction_hello_mac = LLReactionHelloMac("HelloMac", FsmEventMatrix, logic)
     reaction_device_status = LLReactionDeviceStatus("DeviceStatus", FsmEventMatrix, logic)
+    reaction_button_pressed = LLReactionButtonBox("ButtonPressed", FsmEventMatrix, logic)
     '''
     States
     '''
@@ -124,6 +166,7 @@ if __name__ == "__main__":
     state1.addReaction(LLSignalToReactionEntry("hello_mac", reaction_hello_mac))
     state1.addReaction(LLSignalToReactionEntry("configmode", reaction_configmode))
     state1.addReaction(LLSignalToReactionEntry("device_status", reaction_device_status))
+    state1.addReaction(LLSignalToReactionEntry("button", reaction_button_pressed))
 
 
     state2 = LLState("Offline")
@@ -157,6 +200,7 @@ if __name__ == "__main__":
     communicator.addSubscription(subscription_hello_mac)
     communicator.addSubscription(subscription_hello_type)
     communicator.addSubscription(subscription_device_stati)
+    communicator.addSubscription(subscription_buttonbox_buttons)
 
     while(True):
         time.sleep(1)

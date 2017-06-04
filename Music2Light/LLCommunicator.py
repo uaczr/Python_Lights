@@ -99,7 +99,7 @@ class LLCommunicator(object):
         self.loop = Thread(target=self.MqttClient.loop_forever)
         self.loop.start()
 
-    def addSubscription(self, subscription):
+    def  addSubscription(self, subscription):
         print('Subscribed to Topic {}'.format(subscription.topic.path))
         self.subscriptions.append(subscription)
         self.MqttClient.subscribe(subscription.topic.path)

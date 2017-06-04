@@ -87,4 +87,6 @@ class LLFiniteStateMachine(object):
             self.reactionEngine.setSignal2ReactionList(self.current_state.signalToReactionMapping)
             sleep(0.01)
 
+    def set_state(self, state):
+        self.current_state = state
 
