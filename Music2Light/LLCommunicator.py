@@ -27,7 +27,8 @@ class LLSignalToReactionEngine(object):
     def signal2reaction(self, signal):
         for signalToReaction in self.signalreactionlist:
             if(signalToReaction.signal == signal.name):
-                signalToReaction.reaction.react(signal)
+                for reaction in signalToReaction.reaction:
+                    reaction.react(signal)
                 break
 
 '''
@@ -53,6 +54,13 @@ class LLReaction(object):
     def react(self, signal):
         self.signal = signal
         return 0
+
+    def findTypeAndId(self, path):
+        type_begin = path.find("/") + 1
+        type_end = path.find("/", type_begin)
+        id_begin = type_end + 1
+        id_end = path.find("/", id_begin)
+        return path[type_begin:type_end], path[id_begin:id_end]
 
 '''
 MQTT Topic

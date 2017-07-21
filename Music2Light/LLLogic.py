@@ -1,4 +1,5 @@
 from LLCommunicator import LLTopic, LLCommunicator, LLSubscription
+import Settings
 from threading import Thread
 from time import sleep
 class LLDevice(object):
@@ -34,22 +35,70 @@ class LLStandardLight(LLDevice):
         self.set_color()
 
     def enable(self):
-        topic = LLTopic(path="devices/{}/{}/light". format(self.type, self.id), topic="1")
+        topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="1")
         self.communicator.publish(topic)
 
     def disable(self):
-        topic = LLTopic(path="devices/{}/{}/light". format(self.type, self.id), topic="0")
+        topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="0")
         self.communicator.publish(topic)
 
-    def set_color(self, r=255, g=255, b=255, dim=255):
-        topic_r = LLTopic(path="devices/{}/{}/r". format(self.type, self.id), topic="{}".format(r))
-        topic_g = LLTopic(path="devices/{}/{}/g".format(self.type, self.id), topic="{}".format(g))
-        topic_b = LLTopic(path="devices/{}/{}/b".format(self.type, self.id), topic="{}".format(b))
-        topic_dim = LLTopic(path="devices/{}/{}/dim".format(self.type, self.id), topic="{}".format(dim))
+    def enable_light(self, index, dim):
+        topic_r = LLTopic(path="devices/{}/{}/index". format(self.type, self.id), value="{}".format(r))
+        topic_dim = LLTopic(path="devices/{}/{}/dim".format(self.type, self.id), value="{}".format(dim))
         self.communicator.publish(topic_r)
         self.communicator.publish(topic_g)
         self.communicator.publish(topic_b)
         self.communicator.publish(topic_dim)
+
+#
+# DMX Devices werden angeschlossen
+# DMX Addressen mussen in Lichtbereiche, Nebelbereiche aufgeteilt sein.
+class LLDMXDevice(LLDevice):
+    def __init__(self, mac, type, id, communicator):
+        super(LLDMXLight, self).__init__(mac, type, id, communicator)
+
+    def disable_light(self):
+        # Licht
+        for i in range(Settings.DMXKannenStart, Settings.DMXKannenEnd, Settings.DMXKannenStep):
+            topic_r = LLTopic(path="devices/{}/{}/{}". format(self.type, self.id, i), value="{}".format(0))
+            topic_g = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+1), value="{}".format(0))
+            topic_b = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+2), value="{}".format(0))
+            topic_dim = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i + 3), value="{}".format(0))
+            self.communicator.publish(topic_r)
+            self.communicator.publish(topic_g)
+            self.communicator.publish(topic_b)
+            self.communicator.publish(topic_dim)
+
+    def disable_fog(self):
+        for channel in Settings.DMXNebelChannels:
+            topic_off = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, channel[0]), value="{}".format(channel[1]))
+            self.communicator.publish(topic_off)
+
+    def enable_fog(self):
+        for channel in Settings.DMXNebelChannels:
+            topic_on = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, channel[0]), value="{}".format(channel[2]))
+            self.communicator.publish(topic_on)
+
+    def enable_light(self, index, dim):
+        # Get Color from Colormap
+        r = Settings.ColorMap[index][0]
+        g = Settings.ColorMap[index][1]
+        b = Settings.ColorMap[index][2]
+        # iterate over all possible DMX lights on the Devices
+        for i in range(Settings.DMXKannenStart, Settings.DMXKannenEnd, Settings.DMXKannenStep):
+            topic_r = LLTopic(path="devices/{}/{}/{}". format(self.type, self.id, i), value="{}".format(r))
+            topic_g = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+1), value="{}".format(g))
+            topic_b = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+2), value="{}".format(b))
+            topic_dim = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i + 3), value="{}".format(dim))
+            self.communicator.publish(topic_r)
+            self.communicator.publish(topic_g)
+            self.communicator.publish(topic_b)
+            self.communicator.publish(topic_dim)
+
+
+
+
+
 
 '''
 @class LLStandardButtonBox
@@ -70,22 +119,22 @@ class LLStandardButtonBox(LLDevice):
         self.disable_vibration()
 
     def enable_audio(self):
-        topic = LLTopic(path="devices/{}/{}/audio". format(self.type, self.id), value="1")
+        topic = LLTopic(path="devices/{}/{}/beep_n_times". format(self.type, self.id), value="1")
         self.communicator.publish(topic)
         self.audio = 1
 
     def disable_audio(self):
-        topic = LLTopic(path="devices/{}/{}/audio". format(self.type, self.id), value="0")
+        topic = LLTopic(path="devices/{}/{}/beep_n_times". format(self.type, self.id), value="0")
         self.communicator.publish(topic)
         self.audio = 0
 
     def enable_vibration(self):
-        topic = LLTopic(path="devices/{}/{}/vibration".format(self.type, self.id), value="1")
+        topic = LLTopic(path="devices/{}/{}/vibe".format(self.type, self.id), value="3")
         self.communicator.publish(topic)
         self.vibration = 1
 
     def disable_vibration(self):
-        topic = LLTopic(path="devices/{}/{}/vibration".format(self.type, self.id), value="0")
+        topic = LLTopic(path="devices/{}/{}/vibe".format(self.type, self.id), value="0")
         self.communicator.publish(topic)
         self.vibration = 0
 
@@ -98,6 +147,11 @@ class LLStandardButtonBox(LLDevice):
         topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="0")
         self.communicator.publish(topic)
         self.light = 0
+
+    def disable(self):
+        self.disable_audio()
+        self.disable_light()
+        self.disable_vibration()
 
     def set_button(self):
         self.pushed = 1
@@ -115,83 +169,67 @@ class LLLogic(object):
     def __init__(self, communicator):
         print("Initialise Logic")
         self.id = 0
-        self.configMode = False
+        self.configMode = True
         self.registrationState = 0
         self.hello_mac = ""
         self.hello_type = ""
         self.devices = []
         self.communicator = communicator
 
-    def start_registration(self):
-        self.loop_registration = Thread(target=self.registration_loop)
-        self.loop_registration.start()
-
-    def registration_loop(self):
-        while(True):
-            self.registration()
-            self.game()
-            sleep(0.1)
-
-    def game(self):
-        print("Gaming")
 
 
-    def registration(self):
+    def registration(self, hello_mac, hello_type):
         if (self.configMode):
-            if (self.registrationState == 2):
-                for device in self.devices:
-                    if (device.mac == self.hello_mac):
-                        print("Registrated known device of type {} with mac {} on id {}".format(self.hello_type,
-                                                                                                self.hello_mac,
-                                                                                                self.id))
-                        topic = LLTopic("hello/{}/id".format(self.hello_mac), str(self.id))
-                        self.communicator.publish(topic)
-                        self.id += 1
-                        self.registrationState = 0
-                        device.id = self.id - 1
-                if (self.registrationState == 2):
-                    print(
-                    "Registrated new device of type {} with mac {} on id {}".format(self.hello_type, self.hello_mac,
-                                                                                    self.id))
-                    topic = LLTopic("hello/{}/id".format(self.hello_mac), str(self.id))
+            """Searches for Mac in known devices, when found publishes id of the known device to hello/mac/id"""
+            for device in self.devices:
+                if (device.mac == hello_mac):
+                    print("Registrated known device of type {} with mac {} on id {}".format(hello_type,
+                                                                                            hello_mac,
+                                                                                            self.id))
+                    topic = LLTopic("hello/{}/id".format(hello_mac), str(device.id))
                     self.communicator.publish(topic)
+                    return
 
-                    '''
-                    Register Device Types
-                    '''
-                    if (self.hello_type == "StandardLight"):
-                        self.devices.append(
-                            LLStandardLight(self.hello_mac, self.hello_type, self.id, self.communicator))
+            """When no Mac of known devices matches the received mac, a new device is created."""
 
-                    if (self.hello_type == "StandardButtonBox"):
-                        self.devices.append(
-                            LLStandardButtonBox(self.hello_mac, self.hello_type, self.id, self.communicator))
+            print(
+            "Registrated new device of type {} with mac {} on id {}".format(hello_type, hello_mac,
+                                                                            self.id))
+            topic = LLTopic("hello/{}/id".format(hello_mac), str(self.id))
+            self.communicator.publish(topic)
 
-                    if (self.hello_type == "StandardController"):
-                        self.devices.append(
-                            LLStandardController(self.hello_mac, self.hello_type, self.id, self.communicator))
+            '''
+            Register Device Types
+            '''
+            if (hello_type == "StandardLight"):
+                self.devices.append(
+                    LLStandardLight(hello_mac, hello_type, self.id, self.communicator))
 
-                    self.id += 1
-                    self.registrationState = 0
+            if (hello_type == "StandardButtonBox"):
+                self.devices.append(
+                    LLStandardButtonBox(hello_mac, hello_type, self.id, self.communicator))
 
+            if (hello_type == "StandardController"):
+                self.devices.append(
+                    LLStandardController(hello_mac, hello_type, self.id, self.communicator))
+
+            self.id += 1
 
         else:
-            if (self.registrationState == 2):
 
-                for device in self.devices:
-                    if (device.mac == self.hello_mac):
-                        print("Registrated known device of type {} with mac {} on id {}".format(self.hello_type,
-                                                                                                self.hello_mac,
-                                                                                                self.id))
-                        topic = LLTopic("hello/id", str(self.id))
-                        self.communicator.publish(topic)
-                        self.id += 1
-                        self.registrationState = 0
-                        device.id = self.id - 1
-                if (self.registrationState == 2):
-                    topic = LLTopic("hello/id", str(-1))
+            """If Registration is not active, known devices are registered the same way as if registration was active."""
+            for device in self.devices:
+                if (device.mac == hello_mac):
+                    print("Registrated known device of type {} with mac {} on id {}".format(hello_type,
+                                                                                            hello_mac,
+                                                                                            self.id))
+                    topic = LLTopic("hello/{}/id".format(hello_mac), str(device.id))
                     self.communicator.publish(topic)
-                    self.registrationState = 0
+                    return
+
+            """If Registration is inactive, devices can't be registered. -1 is send as id."""
+            topic = LLTopic("hello/{}/id".format(hello_mac), str(-1))
+            self.communicator.publish(topic)
 
 
     def find_device(self, type, id):

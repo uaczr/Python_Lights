@@ -12,10 +12,11 @@ class LLState(object):
         self.signalToReactionMapping.append(signal2reaction)
 
 class LLTransitionEntry(object):
-    def __init__(self, c_state, event, f_state):
+    def __init__(self, c_state, event, f_state, t_function=None):
         self.c_state = c_state
         self.event = event
         self.f_state = f_state
+        self.t_function = t_function
 
 class LLTransitionMatrix(object):
     transitionMatrix = []
@@ -26,13 +27,11 @@ class LLTransitionMatrix(object):
         self.transitionMatrix.append(transitionEntry)
 
     def getFutureState(self, current_state, event):
-        if(event == "None"):
-            return current_state
         for transition in self.transitionMatrix:
             if(transition.c_state.name == current_state.name):
                 if(transition.event.name == event):
                     print("Transition to state {}".format(transition.f_state.name))
-                    return transition.f_state
+                    return transition
 
 class LLEvent:
     name = ""
@@ -74,18 +73,26 @@ class LLFiniteStateMachine(object):
         self.eventMatrix = eventMatrix
         self.transitionMatrix = transistionMatrix
         self.reactionEngine = reactionEngine
+        self.transition = None
 
-    def start(self, start_state):
-        self.current_state = start_state
+    def start(self, start_transition):
+        self.transition = start_transition
+        self.reactionEngine.setSignal2ReactionList(self.transition.f_state.signalToReactionMapping)
+        if self.transition.t_function is not None:
+            self.transition.t_function()
+
         loop = Thread(target=self.loop_forever)
         loop.start()
 
     def loop_forever(self):
         while(True):
             self.current_event = self.eventMatrix.getTriggeredEvent()
-            self.current_state = self.transitionMatrix.getFutureState(self.current_state, self.current_event)
-            self.reactionEngine.setSignal2ReactionList(self.current_state.signalToReactionMapping)
-            sleep(0.01)
+            if self.current_event != "None":
+                self.transition = self.transitionMatrix.getFutureState(self.transition.c_state, self.current_event)
+                self.reactionEngine.setSignal2ReactionList(self.transition.f_state.signalToReactionMapping)
+                if self.transition.t_function is not None:
+                    self.transition.t_function()
+            sleep(0.1)
 
     def set_state(self, state):
         self.current_state = state
