@@ -1,7 +1,7 @@
 from LLCommunicator import LLTopic, LLCommunicator, LLSubscription
 import Settings
-from threading import Thread
-from time import sleep
+from threading import Timer
+import  time
 class LLDevice(object):
     type = ""
     mac = ""
@@ -15,6 +15,9 @@ class LLDevice(object):
     def set_status(self, status):
         self.status = status
 
+    def disable(self):
+        print "Unimplemented Disablefunction"
+
 
 '''
 @class LLStandardLight
@@ -27,73 +30,276 @@ topics:
 - g
 - b
 - dim
+
+Pattern
+strobe
+nextColor
+Strobe
+kill
 '''
 class LLStandardLight(LLDevice):
     def __init__(self, mac, type, id, communicator):
         super(LLStandardLight, self).__init__(mac, type, id, communicator)
         self.disable()
-        self.set_color()
-
-    def enable(self):
-        topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="1")
-        self.communicator.publish(topic)
+        self.flash_light()
+        self.Timer = None
+        self.State = "Off"
+        self.oldState = "Off"
 
     def disable(self):
-        topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="0")
+        topic = LLTopic(path="devices/{}/{}/enable_strobe".format(self.type, self.id), value="0")
+        self.communicator.publish(topic)
+        topic = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="0")
+        self.communicator.publish(topic)
+        self.State = "Off"
+
+    def enable_light(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light". format(self.type, self.id), value="{}".format(1))
+        self.communicator.publish(topic_r)
+        self.State = "Light"
+
+    def flash_light(self):
+        self.enable_strobe()
+        self.Timer = Timer(1.0, self.unflash_light)
+        self.Timer.start()
+        self.oldState = self.State
+        self.State = "Flash"
+
+    def unflash_light(self):
+        self.disable_strobe()
+        if self.oldState == "Light":
+            self.enable_light()
+
+    def enable_strobe(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light". format(self.type, self.id), value="{}".format(1))
+        self.communicator.publish(topic_r)
+
+        topic = LLTopic(path="devices/{}/{}/enable_strobe". format(self.type, self.id), value="{}".format(1))
+        self.communicator.publish(topic)
+        self.State = "Strobe"
+
+    def disable_light(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light". format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic_r)
+        self.State = "Off"
+
+    def disable_strobe(self):
+        topic = LLTopic(path="devices/{}/{}/enable_strobe". format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic)
+        topic_r = LLTopic(path="devices/{}/{}/enable_light". format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic_r)
+        self.State = "Off"
+
+    def change_color(self, n):
+        topic = LLTopic(path="devices/{}/{}/color". format(self.type, self.id), value="{}".format(n))
         self.communicator.publish(topic)
 
-    def enable_light(self, index, dim):
-        topic_r = LLTopic(path="devices/{}/{}/index". format(self.type, self.id), value="{}".format(r))
-        topic_dim = LLTopic(path="devices/{}/{}/dim".format(self.type, self.id), value="{}".format(dim))
+    def change_pattern(self, n):
+        topic = LLTopic(path="devices/{}/{}/pattern". format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+    def change_strobe(self, n):
+        topic = LLTopic(path="devices/{}/{}/strobe". format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+    def dim(self, n):
+        topic = LLTopic(path="devices/{}/{}/dim". format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+'''
+@class LLStandardLight
+@brief Object for Standard Light
+
+enable_light
+enable_strobo
+pattern
+strobe
+color
+dim
+'''
+
+class LLStrobo(LLDevice):
+    def __init__(self, mac, type, id, communicator):
+        super(LLStrobo, self).__init__(mac, type, id, communicator)
+        self.disable()
+        self.flash_light()
+        self.Timer = None
+        self.State = "Off"
+        self.oldState = "Off"
+
+    def disable(self):
+        topic = LLTopic(path="devices/{}/{}/enable_strobe".format(self.type, self.id), value="0")
+        self.communicator.publish(topic)
+        topic = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="0")
+        self.communicator.publish(topic)
+        self.State = "Off"
+
+    def enable_light(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="{}".format(1))
         self.communicator.publish(topic_r)
-        self.communicator.publish(topic_g)
-        self.communicator.publish(topic_b)
-        self.communicator.publish(topic_dim)
+        self.State = "Light"
+
+    def flash_light(self):
+        self.enable_strobe()
+        self.Timer = Timer(1.0, self.unflash_light)
+        self.Timer.start()
+        self.oldState = self.State
+        self.State = "Flash"
+
+    def unflash_light(self):
+        self.disable_strobe()
+        if self.oldState == "Light":
+            self.enable_light()
+
+    def enable_strobe(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="{}".format(1))
+        self.communicator.publish(topic_r)
+
+        topic = LLTopic(path="devices/{}/{}/enable_strobe".format(self.type, self.id), value="{}".format(1))
+        self.communicator.publish(topic)
+        self.State = "Strobe"
+
+    def disable_light(self):
+        topic_r = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic_r)
+        self.State = "Off"
+
+    def disable_strobe(self):
+        topic = LLTopic(path="devices/{}/{}/enable_strobe".format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic)
+        topic_r = LLTopic(path="devices/{}/{}/enable_light".format(self.type, self.id), value="{}".format(0))
+        self.communicator.publish(topic_r)
+        self.State = "Off"
+
+    def change_color(self, n):
+        topic = LLTopic(path="devices/{}/{}/color".format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+    def change_pattern(self, n):
+        topic = LLTopic(path="devices/{}/{}/pattern".format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+    def change_strobe(self, n):
+        topic = LLTopic(path="devices/{}/{}/strobe".format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
+
+    def dim(self, n):
+        topic = LLTopic(path="devices/{}/{}/dim".format(self.type, self.id), value="{}".format(n))
+        self.communicator.publish(topic)
 
 #
 # DMX Devices werden angeschlossen
 # DMX Addressen mussen in Lichtbereiche, Nebelbereiche aufgeteilt sein.
+# DMX_kill
+# DMX_update    "channel,value"
+# DMX_init      Anzahl Channels
+
 class LLDMXDevice(LLDevice):
     def __init__(self, mac, type, id, communicator):
-        super(LLDMXLight, self).__init__(mac, type, id, communicator)
+        super(LLDMXDevice, self).__init__(mac, type, id, communicator)
+        self.color = self.convert_hex2rgb("0000FF")
+        self.dim = 1.0
+        self.colors = [
+            "FFFFFF",
+            "0000FF",
+            "800080",
+            "BC8F8F",
+            "9932CC",
+            "FF6347",
+            "FF0000",
+            "A0522D",
+            "FF00FF",
+            "FFFFFF"
+        ]
+        self.disable_light()
+
+    def convert_hex2rgb(self, hex):
+        rgb = []
+        for i in (0, 2, 4):
+            rgb.append(int(hex[i:i+2], 16))
+        return rgb
+
+    def disable(self):
+        self.disable_fog()
+        self.disable_light()
 
     def disable_light(self):
         # Licht
+        value = ""
         for i in range(Settings.DMXKannenStart, Settings.DMXKannenEnd, Settings.DMXKannenStep):
-            topic_r = LLTopic(path="devices/{}/{}/{}". format(self.type, self.id, i), value="{}".format(0))
-            topic_g = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+1), value="{}".format(0))
-            topic_b = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+2), value="{}".format(0))
-            topic_dim = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i + 3), value="{}".format(0))
-            self.communicator.publish(topic_r)
-            self.communicator.publish(topic_g)
-            self.communicator.publish(topic_b)
-            self.communicator.publish(topic_dim)
+            r = "{},{},".format(i, 0)
+            g = "{},{},".format(i+1, 0)
+            b = "{},{},".format(i+2, 0)
+            value += r
+            value += g
+            value += b
+
+        value = value[0:len(value)-1]
+        topic = LLTopic(path="devices/{}/{}/DMX_update".format(self.type, self.id), value=value)
+        self.communicator.publish(topic)
 
     def disable_fog(self):
+        value = ""
         for channel in Settings.DMXNebelChannels:
-            topic_off = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, channel[0]), value="{}".format(channel[1]))
-            self.communicator.publish(topic_off)
+            value += "{},{},".format(channel[0], channel[1])
+
+        value = value[0:len(value) - 2]
+        topic_off = LLTopic(path="devices/{}/{}/DMX_update".format(self.type, self.id), value=value)
+        self.communicator.publish(topic_off)
 
     def enable_fog(self):
+        value = ""
         for channel in Settings.DMXNebelChannels:
-            topic_on = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, channel[0]), value="{}".format(channel[2]))
-            self.communicator.publish(topic_on)
+            value += "{},{},".format(channel[0], channel[2])
 
-    def enable_light(self, index, dim):
-        # Get Color from Colormap
-        r = Settings.ColorMap[index][0]
-        g = Settings.ColorMap[index][1]
-        b = Settings.ColorMap[index][2]
-        # iterate over all possible DMX lights on the Devices
+        value = value[0:len(value) - 1]
+        topic_off = LLTopic(path="devices/{}/{}/DMX_update".format(self.type, self.id), value=value)
+        self.communicator.publish(topic_off)
+
+    def enable_light(self):
+        # Licht
+        value = ""
         for i in range(Settings.DMXKannenStart, Settings.DMXKannenEnd, Settings.DMXKannenStep):
-            topic_r = LLTopic(path="devices/{}/{}/{}". format(self.type, self.id, i), value="{}".format(r))
-            topic_g = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+1), value="{}".format(g))
-            topic_b = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i+2), value="{}".format(b))
-            topic_dim = LLTopic(path="devices/{}/{}/{}".format(self.type, self.id, i + 3), value="{}".format(dim))
-            self.communicator.publish(topic_r)
-            self.communicator.publish(topic_g)
-            self.communicator.publish(topic_b)
-            self.communicator.publish(topic_dim)
+            r = "{},{},".format(i, int(self.dim*self.color[0]))
+            g = "{},{},".format(i + 1, int(self.dim*self.color[1]))
+            b = "{},{},".format(i + 2, int(self.dim*self.color[2]))
+            value += r
+            value += g
+            value += b
+
+        value = value[0:len(value) - 1]
+        topic = LLTopic(path="devices/{}/{}/DMX_update".format(self.type,self.id), value=value)
+        self.communicator.publish(topic)
+
+    def enable_strobe(self):
+        print "DMX has no strobe."
+
+    def disable_strobe(self):
+        print "DMX has no strobe"
+
+    def change_pattern(self,n):
+        print "DMX has no pattern"
+
+    def change_strobe(self,n):
+        print "DMX has no strobe"
+
+    def change_color(self, n):
+        self.color = self.convert_hex2rgb(self.colors[int(n/9)])
+        value = ""
+        for i in range(Settings.DMXKannenStart, Settings.DMXKannenEnd, Settings.DMXKannenStep):
+            r = "{},{},".format(i, int(self.dim*self.color[0]))
+            g = "{},{},".format(i + 1, int(self.dim*self.color[1]))
+            b = "{},{},".format(i + 2, int(self.dim*self.color[2]))
+            value += r
+            value += g
+            value += b
+
+        value = value[0:len(value) - 1]
+        topic = LLTopic(path="devices/{}/{}/DMX_update".format(self.type,self.id), value=value)
+        self.communicator.publish(topic)
+
+    def dim(self, n):
+        self.dim = n
 
 
 
@@ -129,7 +335,12 @@ class LLStandardButtonBox(LLDevice):
         self.audio = 0
 
     def enable_vibration(self):
-        topic = LLTopic(path="devices/{}/{}/vibe".format(self.type, self.id), value="3")
+        topic = LLTopic(path="devices/{}/{}/vibe".format(self.type, self.id), value="1")
+        self.communicator.publish(topic)
+        self.vibration = 1
+
+    def flash_vibe(self, n):
+        topic = LLTopic(path="devices/{}/{}/vibe_n_times".format(self.type, self.id), value=str(n))
         self.communicator.publish(topic)
         self.vibration = 1
 
@@ -142,6 +353,12 @@ class LLStandardButtonBox(LLDevice):
         topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="1")
         self.communicator.publish(topic)
         self.light = 1
+
+    def flash_light(self, n):
+        topic = LLTopic(path="devices/{}/{}/flash_n_times".format(self.type, self.id), value=str(n))
+        self.communicator.publish(topic)
+        self.light = 1
+
 
     def disable_light(self):
         topic = LLTopic(path="devices/{}/{}/light".format(self.type, self.id), value="0")
@@ -159,6 +376,44 @@ class LLStandardButtonBox(LLDevice):
     def unset_button(self):
         self.pushed = 0
 
+"""
+Topics Seilwinde
+/drop in ms
+/lift in ms
+"""
+class LLSeilwinde(LLDevice):
+    def __init__(self, mac, type, id, communicator):
+        super(LLSeilwinde, self).__init__(mac, type, id, communicator)
+        self.State = "UP"
+        self.lifttime = Settings.Seilwinde_Lifttime
+        self.droptime = Settings.Seilwinde_Droptime
+        self.last_call = time.time()
+
+    def disable(self):
+        if self.State == "DOWN":
+            diff = (time.time() - self.last_call) * 1000
+            if diff < self.droptime:
+                rest = int(self.lifttime - (self.droptime - diff))
+                topic = LLTopic(path="devices/{}/{}/lift".format(self.type, self.id), value=str(rest))
+                self.communicator.publish(topic)
+            else:
+                topic = LLTopic(path="devices/{}/{}/lift".format(self.type, self.id), value=str(self.lifttime))
+                self.communicator.publish(topic)
+            self.last_call = time.time()
+            self.State = "UP"
+
+    def enable(self):
+        if self.State == "UP":
+            if diff < self.lifttime:
+                rest = int(self.droptime - (self.lifttime - diff))
+                topic = LLTopic(path="devices/{}/{}/lift".format(self.type, self.id), value=str(rest))
+                self.communicator.publish(topic)
+            else:
+                topic = LLTopic(path="devices/{}/{}/lift".format(self.type, self.id), value=str(self.droptime))
+                self.communicator.publish(topic)
+            self.last_call = time.time()
+            self.State = "DOWN"
+
 
 
 class LLStandardController(LLDevice):
@@ -175,6 +430,16 @@ class LLLogic(object):
         self.hello_type = ""
         self.devices = []
         self.communicator = communicator
+        self.buttons = []
+        self.lights = []
+        self.dmx = []
+        self.barlights = []
+        self.strobolights = []
+        self.seilwinde = []
+        self.colorindex = 0
+        self.patternindex = 0
+        self.strobeindex = 0
+        self.seilwinden = []
 
 
 
@@ -201,17 +466,37 @@ class LLLogic(object):
             '''
             Register Device Types
             '''
+            if(hello_type == "DMXBox"):
+                device = LLDMXDevice(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
+                self.lights.append(device)
+                self.dmx.append(device)
+
             if (hello_type == "StandardLight"):
-                self.devices.append(
-                    LLStandardLight(hello_mac, hello_type, self.id, self.communicator))
+                device = LLStandardLight(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
+                self.lights.append(device)
+                self.barlights.append(device)
 
             if (hello_type == "StandardButtonBox"):
-                self.devices.append(
-                    LLStandardButtonBox(hello_mac, hello_type, self.id, self.communicator))
+                device = LLStandardButtonBox(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
+                self.buttons.append(device)
+
+            if (hello_type == "Seilwinde"):
+                device = LLSeilwinde(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
+                self.seilwinden.append(device)
+
+            if (hello_type == "Strobo"):
+                device = LLStrobo(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
+                self.lights.append(device)
+                self.strobolights.append(device)
 
             if (hello_type == "StandardController"):
-                self.devices.append(
-                    LLStandardController(hello_mac, hello_type, self.id, self.communicator))
+                device = LLStandardController(hello_mac, hello_type, self.id, self.communicator)
+                self.devices.append(device)
 
             self.id += 1
 
@@ -238,6 +523,108 @@ class LLLogic(object):
                 return device
 
         return -1
+
+    def disable_all(self):
+        print("Disable all devices!")
+        for device in self.devices:
+            device.disable()
+
+    def change_color(self):
+        self.colorindex += 1
+        self.patternindex += 1
+        # self.colorindex += 1
+        if self.colorindex > Settings.ColorIndexMax:
+            self.colorindex = 0
+
+        if self.patternindex > Settings.PatternIndexMax:
+            self.patternindex = 0
+
+        for light in self.lights:
+            light.change_color(self.colorindex)
+            light.change_pattern(self.patternindex)
+            light.change_strobe(self.strobeindex)
+
+    def change_red(self):
+        self.colorindex = 60
+        for light in self.lights:
+            light.change_color(self.colorindex)
+            light.change_pattern(self.patternindex)
+            light.change_strobe(self.strobeindex)
+
+    def change_blue(self):
+        self.colorindex = 10
+        for light in self.lights:
+            light.change_color(self.colorindex)
+            light.change_pattern(self.patternindex)
+            light.change_strobe(self.strobeindex)
+
+    def level0_lights(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.disable()
+
+    def level1_lights(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.disable()
+
+        for light in self.dmx:
+            light.enable_light()
+
+    def level2_lights(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.disable()
+
+        for light in self.dmx:
+            light.enable_light()
+
+        for light in self.barlights:
+            light.enable_light()
+
+    def level3_lights(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.disable()
+
+        for light in self.lights:
+            light.enable_light()
+
+    def level4_lights(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.disable()
+
+        for light in self.lights:
+            light.enable_light()
+
+        for light in self.barlights:
+            light.enable_strobe()
+
+    def level5_ligths(self):
+        for light in self.lights:
+            light.disable_light()
+
+        for light in self.lights:
+            light.enable_strobe()
+
+        for seilwinde in self.seilwinden:
+            seilwinde.enable()
+
+    def dim_all(self, n):
+        for light in self.lights:
+            light.dim(n)
+
 
 
 

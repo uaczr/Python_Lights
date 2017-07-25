@@ -88,7 +88,7 @@ class LLFiniteStateMachine(object):
         while(True):
             self.current_event = self.eventMatrix.getTriggeredEvent()
             if self.current_event != "None":
-                self.transition = self.transitionMatrix.getFutureState(self.transition.c_state, self.current_event)
+                self.transition = self.transitionMatrix.getFutureState(self.transition.f_state, self.current_event)
                 self.reactionEngine.setSignal2ReactionList(self.transition.f_state.signalToReactionMapping)
                 if self.transition.t_function is not None:
                     self.transition.t_function()

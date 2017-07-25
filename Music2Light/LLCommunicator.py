@@ -110,7 +110,7 @@ class LLCommunicator(object):
     def  addSubscription(self, subscription):
         print('Subscribed to Topic {}'.format(subscription.topic.path))
         self.subscriptions.append(subscription)
-        self.MqttClient.subscribe(subscription.topic.path)
+        self.MqttClient.subscribe(subscription.topic.path, 1)
 
     def on_connect(self, client, userdata, flags, rc):
         print('Connected to Brocker {} at port {}'.format(self.broker_address, self.port))
